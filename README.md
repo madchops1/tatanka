@@ -1,6 +1,3 @@
-tatanka
+Tatanka
 =======
-
-Tatanka is a website development framework for php that wastes nothing.
-<Br>
-Documentation: http://tatanka.readme.io/
+Tatanka is a LAMP stack framework. http://tatanka.readme.io/
