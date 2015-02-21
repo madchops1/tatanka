@@ -30,6 +30,8 @@ include 'tatanka/google.class.php';
 include 'tatanka/facebook.class.php';
 include 'tatanka/user.class.php'; 
 
+echo "Boo";
+
 class app {
 
 	// Application Settings
