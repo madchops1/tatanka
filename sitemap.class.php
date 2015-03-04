@@ -24,23 +24,18 @@ class siteMap {
 		siteMap::scan(self::$siteMapDomain);
 
 		$output =  '<?xml version="1.0" encoding="UTF-8"?>
-						  <url>
-							<loc>http://'.self::$siteMapDomain.'/</loc>
-							<changefreq>daily</changefreq>
-						  </url>
-						  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-						  ';
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
 		// Loop through the URLs 
 		foreach(self::$siteMapUrls as $url) {
 			$output .= '
-						  <url>
-					          <loc>http://'.self::$siteMapDomain.'/'.$url.'</loc> 
-				  	 	  </url>';
+	<url>
+		<loc>http://'.self::$siteMapDomain.'/'.$url.'</loc> 
+	</url>';
 		}		  
 
 		$output .= '
-						  </urlset>';
+</urlset>';
 		return $output;
 	}
 
@@ -52,6 +47,7 @@ class siteMap {
 		$siteMapFile = fopen("sitemap.xml", "w") or die("Unable to open sitemap file!\n");
 		
 		// Write the file
+		//$map = preg_replace('/\s+/', '', $map);
 		fwrite ($siteMapFile,"");
 		fwrite ($siteMapFile,$map);
 
@@ -98,7 +94,10 @@ class siteMap {
 			$href = str_replace ("\"", "", $hrefparts2[0]);
 			
 			//var_dump($href);
-			if($href == "") { continue; }
+			if($href == "") { 				continue; }
+			if(strstr($href,"Notice:")) { 	continue; }
+			if(strstr($href,"'")) { 		continue; }
+			$href = str_replace(" ", "", $href);
 
 			// get the href
 			if ((substr ($href, 0, 7) != "http://") && 
