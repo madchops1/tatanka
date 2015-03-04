@@ -68,7 +68,6 @@ class app {
   public $pwd                 = false;                            // Used for arrow environment, pwd is the current directory path
   public $arrow               = false;                            // Arrow container
   public $environment         = "";                               // Key name of the environment from settings
-  public $sitemap;                                                // Class container
   public $scripts             = false;                            // Scripts array
   public $combineScripts      = false;                            // Combine scripts
   public $minifyScripts       = false;                            // Minify scripts as much as possible
@@ -163,9 +162,6 @@ class app {
       $_SESSION['user']->companyName    = $this->companyName; 
       $_SESSION['user']->domain         = $this->domain;
     }
-
-    // Setup SiteMap
-    $this->siteMap = new siteMap;
 
     // Process Request
     $this->processRequest();
