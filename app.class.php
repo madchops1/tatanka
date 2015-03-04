@@ -93,7 +93,7 @@ class app {
       $this->pwd = $_SERVER['PWD'];
     }
 
-    // Arrow
+    // Arrow CLI
     if($_SERVER['PHP_SELF'] == 'arrow') {
       // return false for arrow, arrow requires no session.
       //return false;
@@ -157,7 +157,7 @@ class app {
       $_SESSION['store']->taxRate           = $this->taxRate;
       $_SESSION['store']->flatShippingRate  = $this->flatShippingRate;
     }
-    
+
     // Certain Values need to be available in $_SESSION['user']
     if(isset($_SESSION['user'])) {
       $_SESSION['user']->welcomeEmail   = $this->welcomeEmail; 
