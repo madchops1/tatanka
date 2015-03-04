@@ -153,9 +153,11 @@ class app {
     $this->facebook->url                  = $this->faceBookUrl;
 
     // Configure the store
-    $_SESSION['store']->taxRate           = $this->taxRate;
-    $_SESSION['store']->flatShippingRate  = $this->flatShippingRate;
-
+    if(isset($this->taxRate)) {
+      $_SESSION['store']->taxRate           = $this->taxRate;
+      $_SESSION['store']->flatShippingRate  = $this->flatShippingRate;
+    }
+    
     // Certain Values need to be available in $_SESSION['user']
     if(isset($_SESSION['user'])) {
       $_SESSION['user']->welcomeEmail   = $this->welcomeEmail; 
