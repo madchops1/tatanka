@@ -238,101 +238,83 @@ class app {
   protected function processRequest() 
   {
 
+    if(!isset($_REQUEST['request'])){ $_REQUEST['request'] = ""; }
+
+    $requestArray = explode(" ",$_REQUEST['request']);
+    $url = $requestArray[1];
+    $urlArray = explode("/",$url);
+    $this->urlArray = $urlArray;
+
     //
-    // The View
-    // Handle Mod Rewrite
+    // Set the page to display
+    // and the other params into $_REQUEST and $_GET
     //
-    if(!isset($_REQUEST['request'])){
-      $_REQUEST['request'] = "";
+    if(!isset($urlArray[$this->pagePart])){
+      $urlArray[$this->pagePart] = "";
     }
-    //if(isset($_REQUEST['request'])) {
+      
+    // Set Default Page
+    $defaultPage = $this->page;
 
-      $requestArray = explode(" ",$_REQUEST['request']);
-      $url = $requestArray[1];
-      $urlArray = explode("/",$url);
-      $this->urlArray = $urlArray;
+    // Override the page if it is being passed
+    if($urlArray[$this->pagePart] != "") {
+      $this->page = $urlArray[$this->pagePart];
+    }
 
-      //var_dump($urlArray);
+    // Sanitize page
+    if(strstr($this->page,"#")) {
+      $pageArray = explode("#",$this->page);
+      $this->page = $pageArray[0];
+    }
 
-      //
-      // www...
-      // Set the page to display
-      // and the other params into $_REQUEST and $_GET
-      //
-      if(!isset($urlArray[$this->pagePart])){
-        $urlArray[$this->pagePart] = "";
+    // Admin Url Handling, yes I put this here for now, will probably make it app specific or a module
+    if($this->page == 'admin') {
+      if(!isset($urlArray[$this->adminPagePart])) $urlArray[$this->adminPagePart] = "";
+      $this->page   = $urlArray[$this->adminPagePart] != "" ? $urlArray[$this->adminPagePart] : $this->page = $defaultPage;
+      $this->layout = $this->adminLayout;
+      $this->debug  = false;
+      unset($urlArray[$this->adminPagePart]);
+      if($this->page != '' && $this->page != 'home' && !strstr($_SESSION['user']->roles,"admin")) {
+        $_SESSION['alertStatus'] = 'error';
+        $_SESSION['alertMsg'] = 'You must be an admin to go there :(';
+        header("LOCATION: /admin");
+        die;
       }
-      //if(isset($urlArray[$this->pagePart]) && $urlArray[$this->pagePart] != '') {
-        
-        // Set Default Page
-        $defaultPage = $this->page;
+    }
 
-        // Override the page if it is being passed
-        if($urlArray[$this->pagePart] != "") {
-          $this->page = $urlArray[$this->pagePart];
+    // Down Page Handling
+    if($this->down == true && $this->page != 'down') {
+      $yourIp = utility::getUserIp();
+      if(!in_array($yourIp, $this->downAccessIps)){
+        header("Location: /down");
+        die;
+      }
+    } 
+
+    // Required Roles Handling
+    // @todo... should handle and expand on admin url handlint
+
+    unset($urlArray[0]);
+    unset($urlArray[$this->pagePart]);
+
+    // Reset Array Values
+    $urlArray = array_values($urlArray);
+    $i=1;
+    foreach($urlArray as $part) {
+      if ($i % 2 != 0) {
+        if(isset($urlArray[$i])) {
+          $_REQUEST[$part] = $urlArray[$i]; 
+        } else {
+          $_REQUEST[$part] = "";
         }
+      } else {
+        $i++;
+        continue;
+      }
+      $i++;
+    }
 
-        // Sanitize page
-        if(strstr($this->page,"#")) {
-          $pageArray = explode("#",$this->page);
-          $this->page = $pageArray[0];
-        }
-
-        // Admin Url Handling
-        if($this->page == 'admin') {
-          if(!isset($urlArray[$this->adminPagePart])) $urlArray[$this->adminPagePart] = "";
-          $this->page   = $urlArray[$this->adminPagePart] != "" ? $urlArray[$this->adminPagePart] : $this->page = $defaultPage;
-          $this->layout = $this->adminLayout;
-          $this->debug  = false;
-          unset($urlArray[$this->adminPagePart]);
-          if($this->page != '' && $this->page != 'home' && !strstr($_SESSION['user']->roles,"admin")) {
-            $_SESSION['alertStatus'] = 'error';
-            $_SESSION['alertMsg'] = 'You must be an admin to go there :(';
-            header("LOCATION: /admin");
-            die;
-          }
-        }
-
-        // Down Page Handling
-        if($this->down == true && $this->page != 'down') {
-          $yourIp = utility::getUserIp();
-          if(!in_array($yourIp, $this->downAccessIps)){
-            //$_SESSION['alertStatus'] = 'error';
-            //$_SESSION['alertMsg'] = 'Your ip: '.$yourIp.' must be authenticated if your a developer :(';
-            header("Location: /down");
-            die;
-          }
-        } 
-
-        // Required Roles Handling
-        // @todo... should handle and expand on admin url handlint
-
-        // Remove 0, the Page, and the dev root if its there
-        unset($urlArray[0]);
-        unset($urlArray[$this->pagePart]);
-
-        // Reset Array Values
-        $urlArray = array_values($urlArray);
-        $i=1;
-        foreach($urlArray as $part) {
-          if ($i % 2 != 0) {
-            if(isset($urlArray[$i])) {
-              $_REQUEST[$part] = $urlArray[$i]; 
-            } else {
-              $_REQUEST[$part] = "";
-            }
-          } else {
-            $i++;
-            continue;
-          }
-          $i++;
-        }
-      //}
-    //}
-
-    //
     // The Request Router
-    //
     $this->router();
   }
 
@@ -342,14 +324,10 @@ class app {
   protected function router() 
   {
 
-    //
     // Get Router
-    //
     switch(strtolower($this->page)) {
 
-      //
       // Logout requests
-      //
       case "logout":
 
         // Destroy the Session
@@ -368,33 +346,18 @@ class app {
         break;
 
       //
-      //
-      //
       case "account":
         $_SESSION['user']->restrictedPage();
         break;
 
-      //
-      // REST API requests
-      // As of now there is no core api
-      //
-      case "api":
-        //echo "This is a request to the api... Functionality coming soon";
-        //die;
-        break;
     }
 
-
-    //
-    // POST Rouer
-    //
+    // POST Router
     if(isset($_POST['action'])) {
 
       // Sanitize Post
       $_UNSANITEZED_POST = $_POST;
       $_POST = database::sanitizePost($_POST);
-      //var_dump($_POST);
-      //die;
 
       switch($_POST['action']) {        
         
@@ -442,7 +405,6 @@ class app {
         
         // Works dynamically with administration table data
         case "table":
-          //die($this->page);
           // Delete ids
           if(isset($_POST['ids']) && count($_POST['ids']) && isset($_POST['delete_ids'])) {
             $this->delete($_POST);
@@ -474,9 +436,6 @@ class app {
             die;
           }
 
-          //header("LOCATION: /admin/".$this->page."");
-          //die;
-
           break;
 
         // Delete an item, mark as active=0
@@ -489,7 +448,6 @@ class app {
           $this->processContactForm($_POST);
           break;
 
-        // Do nothing by default...
         default:
           break;
       }
@@ -855,7 +813,6 @@ class app {
       return false;
   }
 
-  
   public static function clearCache()
   {
     $files = glob('cache/*'); // get all file names
