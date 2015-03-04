@@ -23,14 +23,13 @@ ob_start();
 include 'inc/settings.ignore.php';
 
 // CORE Includes
-include 'tatanka/database.class.php';
-include 'tatanka/utility.class.php';
-include 'tatanka/store.class.php';
-include 'tatanka/google.class.php';
-include 'tatanka/facebook.class.php';
-include 'tatanka/user.class.php'; 
-
-//echo "Boo";
+include 'tatanka/database.class.php';   // The database layer class
+include 'tatanka/utility.class.php';    // The utility functions
+include 'tatanka/store.class.php';      // The eCommerce Store class
+include 'tatanka/google.class.php';     // Universal Google Apis Class
+include 'tatanka/facebook.class.php';   // Universal Facebook Apis Class
+include 'tatanka/user.class.php';       // Tatanka's User Class
+include 'tatanka/sitemap.class.php';    // A class to generate sitemaps for a website
 
 class app {
 
@@ -55,18 +54,30 @@ class app {
   public $welcomeEmail        = '';                               // Meant to be overridden by child class
   public $contactConfEmail    = '';                               // Meant to be overridden by child class
   public $companyName         = '';                               // Meant to be overridden by child class
+  public $google;                                                 // Class container
   public $googleMapsKey       = "";                               // Meant to be overridden by child class
   public $googleAnalyticsId   = "";                               // Meant to be overridden by child class             
   public $googleClientId      = "";                               // Meant to be overridden by child class
   public $googleSecret        = "";                               // Meant to be overridden by child class
   public $googleVerification  = "";                               // Meant to be overridden by child class
+  public $facebook;                                               // Class container
   public $faceBookAppId       = "";                               // Meant to be overridden by child class
   public $faceBookAppSecret   = "";                               // Meant to be overridden by child class
   public $faceBookUrl         = "";                               // Meant to be overridden by child class
   public $httpHost            = false;                            // Used for http environment, will be false in arrow
-  public $pwd                 = false;                            // Used for arrow environment
-  public $arrow               = false; 
+  public $pwd                 = false;                            // Used for arrow environment, pwd is the current directory path
+  public $arrow               = false;                            // Arrow container
   public $environment         = "";                               // Key name of the environment from settings
+  public $sitemap;                                                // Class container
+  public $scripts             = false;                            // Scripts array
+  public $combineScripts      = false;                            // Combine scripts
+  public $minifyScripts       = false;                            // Minify scripts as much as possible
+  public $cacheScripts        = false;                            // Cache combined and minified scripts
+  public $styles              = false;                            // Styles array
+  public $combineStyles       = false;                            // Combine styles
+  public $minifyStyles        = false;                            // Minify combined styles
+  public $cacheStyles         = false;                            // Cache combined styles
+
   /** 
    * Constructor
    */ 
@@ -153,7 +164,9 @@ class app {
       $_SESSION['user']->domain         = $this->domain;
     }
 
-    
+    // Setup SiteMap
+    $this->siteMap = new siteMap;
+
     // Process Request
     $this->processRequest();
   }
@@ -829,7 +842,8 @@ class app {
     return $fileSql;
   }
   
-  function updateAccount() {
+  function updateAccount() 
+  {
 
     return true;
   }
@@ -844,6 +858,195 @@ class app {
 
       return false;
   }
+
+  
+  public static function clearCache()
+  {
+    $files = glob('cache/*'); // get all file names
+    foreach($files as $file){ // iterate files
+      if(is_file($file))
+        unlink($file); // delete file
+    }
+    return true;
+  }
+
+  public function combineJs()
+  {
+    $output = '';
+    foreach($this->scripts as $script) {
+      $twoChar = substr($script, 0, 2);
+      // if optimize scripts ture
+      if($twoChar == '//' || strtolower($twoChar) == 'ht') {
+        if($twoChar == '//') { $script = "http:".$script; }
+        @$output .= file_get_contents($script,0);
+      } else {
+        @$output .= file_get_contents("layouts/".$this->layout."/".$script);
+      }  
+    }
+    return $output;
+  }
+
+  public function combineCss()
+  {
+    $output = '';
+    foreach($this->styles as $style) {
+      $twoChar = substr($style, 0, 2);
+      // if optimize scripts ture
+      if($twoChar == '//' || strtolower($twoChar) == 'ht') {
+        if($twoChar == '//') { $style = "http:".$style; }
+        @$output .= file_get_contents($style,0);
+      } else {
+        @$output .= file_get_contents("layouts/".$this->layout."/".$style);
+      }  
+    }
+    return $output;
+  }
+
+  public function includeNormalScripts()
+  {
+    $output = '';
+    foreach($this->scripts as $script) {
+      $twoChar = substr($script, 0, 2);
+      // if optimize scripts ture
+      if($twoChar == '//' || strtolower($twoChar) == 'ht') {
+        if($twoChar == '//') { $script = "http:".$script; }
+        $output .= "
+                    <script type='text/javascript' src='".$script."'></script>";
+      } else {
+        $output .= "
+                    <script type='text/javascript' src='layouts/".$this->layout."/".$script."'></script>";
+      }  
+    }
+    return $output;
+  }
+
+  public function includeNormalStyles()
+  {
+    $output = '';
+    foreach($this->styles as $style) {
+      $twoChar = substr($style, 0, 2);
+      // if optimize scripts ture
+      if($twoChar == '//' || strtolower($twoChar) == 'ht') {
+        if($twoChar == '//') { $style = "http:".$style; }
+        $output .= "
+                    <link rel='stylesheet' href='".$style."'>";      
+      } else {
+        $output .= "
+                    <link rel='stylesheet' href='layouts/".$this->layout."/".$style."'>";      
+      }  
+    }
+    return $output;
+  }
+
+  public function minifyJs($output)
+  {
+    $output = preg_replace('/^\n+|^[\t\s]*\n+/m', '', $output);
+    return $output;
+  }
+
+  public function minifyCss($output)
+  {
+    $output = preg_replace('/^\n+|^[\t\s]*\n+/m', '', $output);
+    return $output;
+  }
+
+  /**
+   * Inject the scripts handle optimization or not
+   */
+  public function injectScripts()
+  {
+    $output = "";
+    $cache = false ;
+
+    // Check for a cache
+    if($this->cacheScripts && file_exists("cache/".$this->layout.".js")) {
+      if($cacheJs = file_get_contents("cache/".$this->layout.".js")) {
+        $output  = "<script type='text/javascript' src='/cache/".$this->layout.".js'></script>";
+        $cache = true;
+        return $output;
+      } 
+    }
+
+    // Combine Scripts
+    if($this->combineScripts) {
+      $output = $this->combineJs();
+    } 
+
+    // If not combined Return Normal Scripts 
+    else {
+      return $this->includeNormalScripts();
+    }
+
+    // Minify Scripts
+    if($this->minifyScripts) {
+      $output = $this->minifyJs($output);
+    }
+
+    // Write and Return Cache
+    if($this->cacheScripts) {
+      $cacheFile = fopen("cache/".$this->layout.".js", "w");
+      fwrite($cacheFile, $output);
+      fclose($cacheFile);
+      $output  = "<script type='text/javascript' src='/cache/".$this->layout.".js'></script>";
+      return $output;
+    }
+
+    // If not caching then return a combined/minified output 
+    $output = "<script type='text/javascript'>
+                ".$output."
+              </script>";
+    return $output;
+  }
+
+  /**
+   * Inject the styles handle optimization or not
+   */
+  public function injectStyles()
+  {
+    $output = "";
+    $cache = false ;
+
+    // Check for a cache
+    if($this->cacheStyles && file_exists("cache/".$this->layout.".css")) {
+      if($cacheCss = file_get_contents("cache/".$this->layout.".css")) {
+        $output  = "<link rel='stylesheet' href='/cache/".$this->layout.".css'>";
+        $cache = true;
+        return $output;
+      } 
+    }
+
+    // Combine Styles
+    if($this->combineStyles) {
+      $output = $this->combineCss();
+    } 
+
+    // If not combined Return Normal Scripts 
+    else {
+      return $this->includeNormalStyles();
+    }
+
+    // Minify Scripts
+    if($this->minifyStyles) {
+      $output = $this->minifyCss($output);
+    }
+
+    // Write and Return Cache
+    if($this->cacheStyles) {
+      $cacheFile = fopen("cache/".$this->layout.".css", "w");
+      fwrite($cacheFile, $output);
+      fclose($cacheFile);
+      $output  = "<link rel='stylesheet' href='/cache/".$this->layout.".css'>";
+      return $output;
+    }
+
+    // If not caching then return a combined/minified output 
+    $output = "<style>
+                ".$output."
+               </style>";
+    return $output;
+  }
+
+
 
 }
 ?>
