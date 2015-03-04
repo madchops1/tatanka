@@ -103,9 +103,7 @@ class database
 
   static public function lastId()
   {
-    //echo "asd fasf";
     $id = mysql_insert_id();
-    //echo "$id";
     return $id;
   }
 

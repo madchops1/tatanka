@@ -44,7 +44,7 @@ class siteMap {
 	{
 		// Generate the map
 		$map = siteMap::generateSiteMap(self::$siteMapDomain);
-		$siteMapFile = fopen("sitemap.xml", "w") or die("Unable to open sitemap file!\n");
+		$siteMapFile = fopen("../sitemap.xml", "w") or die("Unable to open sitemap file!\n");
 		
 		// Write the file
 		//$map = preg_replace('/\s+/', '', $map);

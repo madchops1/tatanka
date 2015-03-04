@@ -1,0 +1,103 @@
+ <?php
+/**
+ * 
+ * Arrow is a command line tool for...
+ *
+ *                     _______    _______       _   _ _  __          
+ *             _,(-)  |__   __|/\|__   __|/\   | \ | | |/ /    /\    
+ *           (`  \_(     | |  /  \  | |  /  \  |  \| | ' /    /  \   
+ *    _,(-)  //">^\      | | / /\ \ | | / /\ \ | . ` |  <    / /\ \  
+ *  (`  \_(              | |/ ____ \| |/ ____ \| |\  | . \  / ____ \ 
+ *  //"\^>               |_/_/    \_\_/_/    \_\_| \_|_|\_\/_/    \_\
+ *
+ * Usage:php
+ * $php arrow -a "doSomething"
+ *
+ * -a about 				// about 
+ * -d self destruct			// yes tatanka comes with a command line self destruct, experimental
+ * -i install 				// install tatanka, not currently required
+ * -m migrate 				// apply, and roll back
+ * -n statistics	 		// statistics, users online, etc...
+ * -u update 				// update "Tatanka Core", and "Arrow" from master branch, not currently required
+ * -c clear cache 			// clear the cache
+ * -h help 					// see Arrow help
+ * -s rebuild sitemap 		// rebuild the sitemap ex. -s www.yourdomiain.com, value req.
+ * 
+ *
+ *
+ */
+//var_dump($_SERVER);
+//die;
+
+$pwdArray = explode("/",$_SERVER['PWD']);
+array_pop($pwdArray);
+$pwd = implode("/",$pwdArray);
+//die($pwd);
+
+
+set_include_path($pwd);
+ini_set('include_path', $pwd);
+
+
+
+include 'tatanka/app.class.php';
+
+// Define....
+$about = "";
+
+// Connect to DB
+database::connectDatabase();
+
+// Include Custom Arrow App Instantiator or else create a new app
+if(!include 'inc/arrow') {
+	//$app = new app;
+}
+
+// Short Flags 								// requires value?
+$shortopts  = "";
+$shortopts .= "a";  						// no
+$shortopts .= "c";  						// no
+$shortopts .= "s:";  						// no
+//$shortopts .= "f:";  						// yes
+//$shortopts .= "h"; 							// no
+
+// -- Long flags
+$longopts  = array(
+    "about",       
+    "clearcache",
+    "sitemap"		
+);
+
+// Get options
+$options = getopt($shortopts, $longopts);
+
+//var_dump($options);
+//die;
+
+// About
+if(isset($options['a'])) {
+	echo "This is ".$about."'s Arrow for Tatanka.\n";
+	echo "PHP Version: ".phpversion()."\n";
+	echo "\n";
+	die;
+}
+
+// Clear Cache
+if(isset($options['c'])) {
+	app::clearCache();
+	echo "Cache cleared.\n";
+	echo "\n";
+	die;
+}
+
+// Rebuild Sitemap
+if(isset($options['s'])) {
+	siteMap::rebuildSiteMap($options['s']);
+	echo "\nSitemap rebuilt for ".$options['s']." domain.\n";
+	echo "\n";
+	die;
+}
+
+die("No action specified.\n");
+
+?>
