@@ -426,8 +426,7 @@ class store {
     $_SESSION['store']->discount = number_format(0,2);
 
     // calc subtotal
-    if(count($_SESSION['store']->cart)) {
-      
+    if(count($_SESSION['store']->cart) > 0 && is_array($_SESSION['store']->cart)) {
       foreach($_SESSION['store']->cart as $key=>$item) {
         $product = new product($this->app,$item['id']);
         $_SESSION['store']->subTotal = number_format($_SESSION['store']->subTotal + ($item['qty']*$product->price),2);
