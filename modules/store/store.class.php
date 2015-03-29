@@ -43,7 +43,10 @@ class store {
     $this->calculateTotals();
 
     // if there is a logged in user then lets add there order history to the user session object
-    if($_SESSION['user']->loggedIn()) $orderHistory = $app->getOneToMany('orders',$_SESSION['user']->id,'user_id');
+    if($_SESSION['user']->loggedIn()) {
+      $_SESSION['user']->orderHistory = $app->getOneToMany('orders',$_SESSION['user']->id,'user_id');
+      
+    }
 
   }
 
