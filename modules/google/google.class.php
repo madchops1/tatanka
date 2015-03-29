@@ -1,26 +1,55 @@
-<?
-/**
- * CORE! Google Class
+<?php
+/* * * * * * * * * * * * * * * *
+ *                             *
+ *  Google Module for Tatanka  *
+ *                             *
+ * * * * * * * * * * * * * * * *
+ * 
+ *  Configurable Settings:
+ * 
+ *    $googleVerification;
+ *    $googleAnalyticsId;
+ *
  */
 class google {
 
-    /**
-     * Setup
-     */
+    public $app;
 	public $verification          = false;
     public $analyticsId           = false;
     public $clientId              = false;
     public $clientSecret          = false;
     public $mapsKey               = false;
+    public $plusUrl               = false;       
 	
     /**
      * Constructor
      */
-	function __construct() {
-
+	function __construct($app) 
+    {
+        $this->app = $app;
+        if(isset($app->googleAnalyticsId))  $this->analyticsId  = $app->googleAnalyticsId;
+        if(isset($app->googleClientId))     $this->clientId     = $app->googleClientId;
+        if(isset($app->googleClientSecret)) $this->clientSecret = $app->googleClientSecret;
+        if(isset($app->googleVerification)) $this->verification = $app->googleVerification;
+        if(isset($app->googleMapsKey))      $this->mapsKey      = $app->googleMapsKey;
+        if(isset($app->googlePlusUrl))      $this->plusUrl      = $app->googlePlusUrl;
 	}
 
-    // Google Meta Tags for verification and google api
+    public function getRouter()
+    {
+
+        return true;
+    }
+
+    public function postRouter()
+    {
+
+        return true;
+    }
+
+    /**
+     * Google Meta Tags for verification and google api
+     */
     function meta() 
     {
         // Include the google verivication code
@@ -50,7 +79,7 @@ class google {
     public function js() 
     {
 
-        include 'google.js.php';
+        include TATANKA_DIR.'/'.MOD_DIR.'/google/google.js.php';
     }
 
     /**
@@ -77,8 +106,4 @@ class google {
         }
         return $latlong;
     }
-
-
-
 }
-?>

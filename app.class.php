@@ -9,73 +9,85 @@
  *
  * The Core TATANKA App Class
  * Do not edit the core class or any other file in the core "tatanka/" directory.
- * To begin make sure you have your're .htaccess, index.php, uploads/, and settings.ignore.php.
- * Also most importantly make sure you extend this app class with your own "your-app-name.class.php" class.
- * See the documentation for documentation and examples.
+ * To begin read the documentation @ 
  */
 
-// Setup
-error_reporting(-1);
-ini_set("display_errors", 1);
-ob_start();
+error_reporting(-1);                    // Error reporting level
+ini_set('display_errors', 1);           // Display errors 1 or 0
+ob_start();                             // Output buffer
+require 'inc/settings.ignore.php';      // Settings
+require 'tatanka/database.class.php';   // The database layer class
+require 'tatanka/helper.class.php';     // Now the helper functions, was legacy: utility functions
+if (!defined('TATANKA_DIR'))  define('TATANKA_DIR', 'tatanka'); // Tatanka constant
+if (!defined('MOD_DIR'))      define('MOD_DIR', 'modules');     // Tatanka constant
 
-// Settings
-include 'inc/settings.ignore.php';
 
-// CORE Includes
-include 'tatanka/database.class.php';   // The database layer class
-include 'tatanka/utility.class.php';    // The utility functions
-include 'tatanka/store.class.php';      // The eCommerce Store class
-include 'tatanka/google.class.php';     // Universal Google Apis Class
-include 'tatanka/facebook.class.php';   // Universal Facebook Apis Class
-include 'tatanka/user.class.php';       // Tatanka's User Class
-include 'tatanka/sitemap.class.php';    // A class to generate sitemaps for a website
+function __autoload($className) 
+{
+  $filename = TATANKA_DIR."/".MOD_DIR."/".$className."/".$className.".class.php";
+  if (is_readable($filename)) require $filename;
+}
 
-class app {
+class app 
+{
 
-	// Application Settings
-  public $domain              = '';                               // The domain where the app resides no trailing slash
-  public $docRoot             = '';                               // The absolute path to the document root for the app on the server
-  public $tz                  = '';                               // Timezone
-  public $debug               = false;                            // Debugging info toggle
-  public $down                = false;                            // Put the site down, uses the down.php template
-  public $downAccessIps       = array();                          // Array of ips that can access the site when it is down
-  public $appName				      = '';    									          // The universal app name
-  public $author              = '';                               // The developer
-  public $contactEmail        = '';                               // The email the contact form submits to, override with child class
-  public $layout              = '';                               // The layout of the website. A directory in the layouts directory
-  public $adminLayout         = '';                               // The layout of the admin
-  public $layoutDir           = 'layouts/';                       // The default dir for layouts/skins
-  public $excludedIndexPages  = array();                          // Pages/urls that ignore the layout index and are fully custom templates
-  public $page                = '';                               // The default page the app loads
-  public $pagePart            = 1;                                // e.g. http://www.domain.com/PAGEPART = 1
-  public $adminPagePart       = false;                            // e.g. http://www.domain.com/admin/PAGEPART = 2
-  public $urlArray            = array();                          // urlArray used by the app
-  public $welcomeEmail        = '';                               // Meant to be overridden by child class
-  public $contactConfEmail    = '';                               // Meant to be overridden by child class
-  public $companyName         = '';                               // Meant to be overridden by child class
-  public $google;                                                 // Class container
-  public $googleMapsKey       = "";                               // Meant to be overridden by child class
-  public $googleAnalyticsId   = "";                               // Meant to be overridden by child class             
-  public $googleClientId      = "";                               // Meant to be overridden by child class
-  public $googleSecret        = "";                               // Meant to be overridden by child class
-  public $googleVerification  = "";                               // Meant to be overridden by child class
-  public $facebook;                                               // Class container
-  public $faceBookAppId       = "";                               // Meant to be overridden by child class
-  public $faceBookAppSecret   = "";                               // Meant to be overridden by child class
-  public $faceBookUrl         = "";                               // Meant to be overridden by child class
-  public $httpHost            = false;                            // Used for http environment, will be false in arrow
-  public $pwd                 = false;                            // Used for arrow environment, pwd is the current directory path
-  public $arrow               = false;                            // Arrow container
-  public $environment         = "";                               // Key name of the environment from settings
-  public $scripts             = false;                            // Scripts array
-  public $combineScripts      = false;                            // Combine scripts
-  public $minifyScripts       = false;                            // Minify scripts as much as possible
-  public $cacheScripts        = false;                            // Cache combined and minified scripts
-  public $styles              = false;                            // Styles array
-  public $combineStyles       = false;                            // Combine styles
-  public $minifyStyles        = false;                            // Minify combined styles
-  public $cacheStyles         = false;                            // Cache combined styles
+  // settings
+  public $domain                    = '';                               // The domain where the app resides no trailing slash, e.g. 'tatanka.io'
+  public $docRoot                   = '';                               // The absolute path to the document root for the app on the server
+  public $tz                        = '';                               // Timezone
+  public $debug                     = false;                            // Debugging info toggle
+  protected $tatankaDirectory       = TATANKA_DIR;                      // The tatanka app directory
+  public $appName				            = '';    									          // The universal app name
+  public $author                    = '';                               // The developer
+  public static $maxFileUploadSize  = 5120000;                          // The max file upload size
+
+  // Request
+  public $page                      = '';                               // The default page the app loads
+  public $pagePart                  = 1;                                // e.g. http://www.domain.com/PAGEPART = 1
+  public $urlArray                  = array();                          // urlArray used by the app
+  public $origUrlArray              = array();                          // origUrlArray used by the app
+  public $origUrl                   = '';
+
+  // Environment
+  public $httpHost                  = false;                            // Used for http environment, will be false in arrow
+  public $pwd                       = false;                            // Used for arrow environment, pwd is the current directory path
+  public $arrow                     = false;                            // Arrow container
+  public $environment               = '';                               // Key name of the environment from settings
+  
+  // Layout 
+  public $layout                    = '';                               // The layout of the website. A directory in the layouts directory
+  public $layoutDir                 = 'layouts/';                       // The default dir for layouts/skins
+  public $excludedIndexPages        = array();                          // Pages/urls that ignore the layout index and are fully custom templates
+  public $pageVars                  = array();                          // Can return variables from getRouter to the layout 
+  
+  // Optimization
+  public $scripts                   = false;                            // Scripts array
+  public $combineScripts            = false;                            // Combine scripts
+  public $minifyScripts             = false;                            // Minify scripts as much as possible
+  public $cacheScripts              = false;                            // Cache combined and minified scripts
+  public $styles                    = false;                            // Styles array
+  public $combineStyles             = false;                            // Combine styles
+  public $minifyStyles              = false;                            // Minify combined styles
+  public $cacheStyles               = false;                            // Cache combined styles
+  
+  // Pagination, search, and generics
+  public $paginationLimit           = 1000;                             // pagination
+  public $paginationPage            = 1;                                // pagination
+  public $paginationSort            = '';                               // pagination
+  public $paginationOrder           = 'desc';                           // pagination
+  public $paginationOpOrder         = false;                            // pagination
+  public $paginationTotal           = 0;                                // pagination
+  public $searchKeywords            = false;                            // search 
+  public $table                     = '';                               // generic new and update
+  public $oneToManyFields           = array();                          //
+  public $manyToManyFields          = array();                          //
+
+  // Modules  
+  protected $moduleDirectory        = MOD_DIR;                          // DO NOT CHANGE
+  protected $moduleDirectories      = false;                            // Module directories
+  public $includedModules           = false;                            // Optional included modules                                    
+  public $modules                   = array();                          // Module autoload continer
+
 
   /** 
    * Constructor
@@ -93,77 +105,32 @@ class app {
       $this->pwd = $_SERVER['PWD'];
     }
 
-    // Arrow CLI
+    // Arrow Client
     if($_SERVER['PHP_SELF'] == 'arrow') {
-      // return false for arrow, arrow requires no session.
-      //return false;
       $this->arrow = true;
     }
 
     // Start the session
     session_start(); 
-
+    
     // Set the timezone
     date_default_timezone_set($this->tz);
     
     // Handle Environemental Variables
     $envs = unserialize(ENVIRONMENTS);
     foreach($envs as $key => $environment) {
-      
-      //echo strtolower($this->httpHost)." = ".strtolower($environment['host'])."<br>";
-
-      // Match this environment
-      if(strtolower($this->httpHost) == strtolower($environment['host'])) {
-        
-        // Set environmentals
+      if(strtolower($this->httpHost) == strtolower($environment['host'])) {        
         $this->environment  = $key; 
         $this->docRoot      = $environment['docroot'];
         $this->domain       = $environment['host'];
-
       }
     }
 
     // Connect to the database
     database::connectDatabase();
 
-    // Create the User first in session
-    if(!isset($_SESSION['user']->id)) { 
-      session_destroy();
-      session_start();
-      $_SESSION['user'] = new user; 
-    }
-
-    $_SESSION['user']->refreshUser();
-
-    // Create the Store in session 
-    if(!isset($_SESSION['store'])) { $_SESSION['store'] = new store; }
-
-    // Google Class Setup and Configure
-    $this->google = new google;
-    $this->google->analyticsId            = $this->googleAnalyticsId;
-    $this->google->clientId               = $this->googleClientId;
-    $this->google->clientSecret           = $this->googleSecret;
-    $this->google->verification           = $this->googleVerification;
-    $this->google->mapsKey                = $this->googleMapsKey;
-
-    // Facebook Class Setup and Configure
-    $this->facebook = new facebook;
-    $this->facebook->appId                = $this->faceBookAppId;
-    $this->facebook->appSecret            = $this->faceBookAppSecret;
-    $this->facebook->url                  = $this->faceBookUrl;
-
-    // Configure the store
-    if(isset($this->taxRate)) {
-      $_SESSION['store']->taxRate           = $this->taxRate;
-      $_SESSION['store']->flatShippingRate  = $this->flatShippingRate;
-    }
-
-    // Certain Values need to be available in $_SESSION['user']
-    if(isset($_SESSION['user'])) {
-      $_SESSION['user']->welcomeEmail   = $this->welcomeEmail; 
-      $_SESSION['user']->companyName    = $this->companyName; 
-      $_SESSION['user']->domain         = $this->domain;
-    }
+    // Call the autoloader
+    $this->autoLoad();      
 
     // Process Request
     $this->processRequest();
@@ -174,7 +141,7 @@ class app {
    */
   function __destruct() 
   {
-
+    // Disconnect database
     database::disconnectDatabase();
   }
 
@@ -204,7 +171,7 @@ class app {
       echo '</pre>';
 
       // USER
-      echo '<br>USER:<Br>';
+      echo '<br>SESSION USER:<Br>';
       echo '<pre>';
       var_dump($_SESSION['user']);
       echo '</pre>';
@@ -214,7 +181,6 @@ class app {
       echo '<pre>';
       var_dump($_SESSION['store']);
       echo '</pre>';
-
 
       // SERVER
       echo '<br>SERVER:<Br>';
@@ -233,34 +199,39 @@ class app {
   }
 
   /**
-   * Processes all requests:
-   * - Triggers the router
-   * - Sets the current page
+   * Processes all requests
    */
-  protected function processRequest() 
+  private function processRequest() 
   {
 
-    if(!isset($_REQUEST['request'])){ $_REQUEST['request'] = ""; }
+    // Get the request
+    if(!isset($_REQUEST['request'])) { $_REQUEST['request'] = ""; }
 
     $requestArray = explode(" ",$_REQUEST['request']);
     $url = $requestArray[1];
     $urlArray = explode("/",$url);
     $this->urlArray = $urlArray;
+    $this->origUrlArray = $urlArray;
 
-    //
+    // Build original full url
+    foreach($this->origUrlArray as $part) {
+      $this->origUrl .= strtolower($part)."/";
+    }
+    $this->origUrl = rtrim($this->origUrl,"/");
+    $this->origUrl = ltrim($this->origUrl,"/");
+
     // Set the page to display
     // and the other params into $_REQUEST and $_GET
-    //
-    if(!isset($urlArray[$this->pagePart])){
-      $urlArray[$this->pagePart] = "";
+    if(!isset($this->urlArray[$this->pagePart])) {
+      $this->urlArray[$this->pagePart] = "";
     }
       
     // Set Default Page
     $defaultPage = $this->page;
 
-    // Override the page if it is being passed
-    if($urlArray[$this->pagePart] != "") {
-      $this->page = $urlArray[$this->pagePart];
+    // Override the default page if it is being passed
+    if($this->urlArray[$this->pagePart] != "") {
+      $this->page = $this->urlArray[$this->pagePart];
     }
 
     // Sanitize page
@@ -269,45 +240,36 @@ class app {
       $this->page = $pageArray[0];
     }
 
-    // Admin Url Handling, yes I put this here for now, will probably make it app specific or a module
-    if($this->page == 'admin') {
-      if(!isset($urlArray[$this->adminPagePart])) $urlArray[$this->adminPagePart] = "";
-      $this->page   = $urlArray[$this->adminPagePart] != "" ? $urlArray[$this->adminPagePart] : $this->page = $defaultPage;
-      $this->layout = $this->adminLayout;
-      $this->debug  = false;
-      unset($urlArray[$this->adminPagePart]);
-      if($this->page != '' && $this->page != 'home' && !strstr($_SESSION['user']->roles,"admin")) {
-        $_SESSION['alertStatus'] = 'error';
-        $_SESSION['alertMsg'] = 'You must be an admin to go there :(';
-        header("LOCATION: /admin");
-        die;
-      }
+    // Strtolower page
+    $this->page = strtolower($this->page);
+    
+    // Trim slash
+    $this->page = rtrim($this->page,"/");
+
+    // Call modules processRequest() hooks
+    foreach($this->moduleDirectories as $module) {
+      $moduleArray = explode("/",$module);
+      $moduleName = $moduleArray[count($moduleArray)-1];
+      if(isset($this->modules[$moduleName]) && method_exists($this->modules[$moduleName],'processRequest')) { $this->modules[$moduleName]->processRequest(); }
     }
 
-    // Down Page Handling
-    if($this->down == true && $this->page != 'down') {
-      $yourIp = utility::getUserIp();
-      if(!in_array($yourIp, $this->downAccessIps)){
-        header("Location: /down");
-        die;
-      }
-    } 
-
-    // Required Roles Handling
-    // @todo... should handle and expand on admin url handlint
-
-    unset($urlArray[0]);
-    unset($urlArray[$this->pagePart]);
+    // Unset the empty portion, and the page
+    unset($this->urlArray[0]);
+    unset($this->urlArray[$this->pagePart]);
 
     // Reset Array Values
-    $urlArray = array_values($urlArray);
+    $this->urlArray = array_values($this->urlArray);
+
+    // Put the request back into request and get
     $i=1;
-    foreach($urlArray as $part) {
+    foreach($this->urlArray as $part) {
       if ($i % 2 != 0) {
-        if(isset($urlArray[$i])) {
-          $_REQUEST[$part] = $urlArray[$i]; 
+        if(isset($this->urlArray[$i])) {
+          $_REQUEST[$part]  = $this->urlArray[$i]; 
+          $_GET[$part]      = $this->urlArray[$i];
         } else {
-          $_REQUEST[$part] = "";
+          $_REQUEST[$part]  = "";
+          $_GET[$part]      = "";
         }
       } else {
         $i++;
@@ -316,146 +278,147 @@ class app {
       $i++;
     }
 
-    // The Request Router
+    // Call the router
     $this->router();
   }
 
   /**
-   * Request  Router
+   * Autoload
    */
-  protected function router() 
+  private function autoload()
+  {
+    // Autoload the module classes
+    $this->moduleDirectories = glob($this->tatankaDirectory.'/'.$this->moduleDirectory.'/*' , GLOB_ONLYDIR);
+    foreach($this->moduleDirectories as $module) { 
+      $moduleArray = explode("/",$module);
+      $moduleName = $moduleArray[count($moduleArray)-1];
+      if($this->includedModules && !in_array(strtolower($moduleName), $this->includedModules)) continue;
+      if(class_exists($moduleName)) if(!isset($this->modules[$moduleName])) $this->modules[$moduleName] = new $moduleName($this); 
+    }
+    // If there are defined included modules then make moduleDirectories equal to includeModules
+    if($this->includedModules) { $this->moduleDirectories = $this->includedModules; }
+  }
+
+  /**
+   * Include Dependencies
+   */
+  function includeDependencies($dependencies)
+  {
+    foreach($dependencies as $dependency) {
+      //var_dump($this->modules);
+      //if(!isset($this->modules[$dependency])) { die("Module ".$dependency." required."); }
+      if(class_exists($dependency)) if(!isset($this->modules[$dependency])) $this->modules[$dependency] = new $dependency($this); 
+    }
+    return true;
+  }
+
+  /**
+   * Request Router
+   */
+  private function router() 
+  {
+    $this->getRouter();
+    $this->postRouter();
+    return true;
+  }
+
+  /**
+   * Get Router
+   */
+  private function getRouter() 
+  {
+    $this->pagination(); // Call pagination
+    // Call module getRouters
+    foreach($this->moduleDirectories as $module) {
+      $moduleArray = explode("/",$module);
+      $moduleName = $moduleArray[count($moduleArray)-1];
+      if(isset($this->modules[$moduleName]) && method_exists($this->modules[$moduleName],'getRouter')) { $this->modules[$moduleName]->getRouter(); }
+    }
+    return true;
+  }
+
+  /**
+   * Post Request Router
+   */
+  private function postRouter()
   {
 
-    // Get Router
-    switch(strtolower($this->page)) {
+    // Sanitize post, keep unsanitized post around...
+    $_UNSANITIZED_POST = $_POST;
+    $_POST = database::sanitizePost($_POST);
 
-      // Logout requests
-      case "logout":
-
-        // Destroy the Session
-        session_unset();
-        session_destroy();
-        session_start();
-
-        // Recreate Session classes because we instantiate the app after these
-        // ...so they won't exist if we don't
-        $_SESSION['user'] = new user;
-        $_SESSION['store'] = new store;
-        $_SESSION['alertStatus'] = 'success';
-        $_SESSION['alertMsg'] = 'Logged out successfully.';
-        header("LOCATION: /");
-        die;
-        break;
-
-      //
-      case "account":
-        $_SESSION['user']->restrictedPage();
-        break;
-
-    }
-
-    // POST Router
+    // Post action
     if(isset($_POST['action'])) {
 
-      // Sanitize Post
-      $_UNSANITEZED_POST = $_POST;
-      $_POST = database::sanitizePost($_POST);
+      // call module postRouters
+      foreach($this->moduleDirectories as $module) {
+        $moduleArray = explode("/",$module);
+        $moduleName = $moduleArray[count($moduleArray)-1];
+        if(isset($this->modules[$moduleName]) && method_exists($this->modules[$moduleName],'postRouter')) { $this->modules[$moduleName]->postRouter(); }
+      }
 
+      // post action switch case
       switch($_POST['action']) {        
-        
-        case "adminlogin":
-          $_SESSION['user']->login($_POST,true);
+
+        // updating a generic new tem
+        case "updateitem":
+          if($id = $this->updateItem($_POST)) { $this->pfr(); }
           break;
 
-        case "login":
-          $_SESSION['user']->login($_POST);
-          break;
-
-        case "register":
-          $_SESSION['user']->register($_POST);
-          break; 
-
-        case "forgotpassword":
-          $_SESSION['user']->forgotPassword($_POST);
-          break;
-
-        case "updateaccount":
-          if($this->updateAccount($_POST)) {
-            if($_SESSION['user']->updateAccount($_POST)) {
-              header("LOCATION: /".$this->page);
-              die;
-            }
+        // creating a generic new item
+        case "newitem":
+          if($id = $this->newItem($_POST)) { 
+            // if admin redirect to the edit/update page
+            if($this->modules['admin']->admin) { header("LOCATION: /".$this->modules['admin']->adminPage."/".$this->page."/id/".$id); die; }
+            $this->pfr(); 
           }
-
           break;
 
-        case "changepassword": 
-          $_SESSION['user']->changepassword($_POST);
-          break;
-
-        case "addtocart":
-          $_SESSION['store']->addToCart($_POST);
-          break;
-
-        case "updatecart":
-          $_SESSION['store']->updateCart($_POST);
-          break;
-
-        case "emptycart":
-          $_SESSION['store']->emptyCart($_POST);
-          break;   
-        
-        // Works dynamically with administration table data
+        // Works dynamically with table data in admin or main website
         case "table":
-          // Delete ids
+
+          // delete ids
           if(isset($_POST['ids']) && count($_POST['ids']) && isset($_POST['delete_ids'])) {
             $this->delete($_POST);
-            header("LOCATION: /admin/".$this->page."");
-            die;
           }
 
-          // Change Statuses
+          // change statuses
           if(isset($_POST['ids']) && count($_POST['ids']) && isset($_POST['change_status'])) {
             $this->changeStatus($_POST);
-            header("LOCATION: /admin/".$this->page."");
-            die;
           }
 
-          // Page Goto
+          // pagination page goto
           if(isset($_POST['current_page']) && isset($_POST['goto_page'])) {
             if($_POST['current_page'] != $_POST['goto_page']) {
               $_REQUEST['page'] = $_POST['goto_page'];
             }
-            header("LOCATION: /admin/".$this->page."");
-            die;
           }
 
-          // Search
+          // search
           if($_POST['keywords'] != "") {
             $_REQUEST['page'] = 1;
             $_REQUEST['keywords'] = $_POST['keywords'];
-            header("LOCATION: /admin/".$this->page."");
-            die;
           }
+
+          // redirect
+          //header("LOCATION: /".($this->admin ? $this->adminPage : "")."/".$this->page."");
+          //die;
+
+          // prevent form re-submission 
+          $this->pfr();
 
           break;
 
         // Delete an item, mark as active=0
         case "delete":
-          $this->delete($_POST);          
+          $this->delete($_POST);
+          //header("LOCATION: /".($this->admin ? $this->adminPage : "")."/".$this->page."");
+          //die;          
+          // prevent form re-submission 
+          $this->pfr();
           break;         
-
-        // Generic Contact Form Processing
-        case "contact":
-          $this->processContactForm($_POST);
-          break;
-
-        default:
-          break;
       }
     }
-
-    return true;
   }
 
   /**
@@ -484,7 +447,6 @@ class app {
    */
   protected function displayPage() 
   {
-    
     $app = $this;
     if(!(include $this->layoutDir.$this->layout."/".$this->page.".php")) {
       header("LOCATION: /404");
@@ -561,75 +523,121 @@ class app {
   }
 
   /**
-   * Table summary is output as html
+   * ISSET check + pageVar check, for new/edit forms
    */
-  public function tableSummary($page,$limit,$total) 
+  public function getVarPageVar($var,$namespace=false)
+  {
+    // check if there is a value in request for the var
+    if($this->getVar($var)) {
+      return $this->getVar($var);
+    }
+
+    // check if we are working with an object in a kind of namespace
+    elseif(isset($this->pageVars[$namespace]->{$var})) {
+      return htmlentities($this->pageVars[$namespace]->{$var});
+    }
+
+    // check if we are working with an array in a kind of namespace
+    elseif(isset($this->pageVars[$namespace][$var])) {
+      return htmlentities($this->pageVars[$namespace][$var]);
+    }
+
+    // check if we are working with a normal paveVar
+    elseif(isset($this->pageVars[$var])) {
+      return htmlentities($this->pageVars[$var]);
+    }
+
+    // nada
+    else {
+      return "";
+    }
+  }
+  
+  /**
+   * Set Pagination Variables
+   */
+  public function pagination()
+  {
+    // Built-in Pagination, Limit, Page Number, Sort Order, Opposite Order, Searching
+    $this->paginationLimit   = isset($_REQUEST['limit']) ? $_REQUEST['limit'] : 1000;
+    $this->paginationPage    = isset($_REQUEST['page']) ? $_REQUEST['page'] : 1;
+    $this->paginationSort    = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'id';
+    // Sort Order
+    $this->paginationOrder   = isset($_REQUEST['order']) ? $_REQUEST['order'] : 'desc'; 
+    // Opposite Order
+    $this->paginationOpOrder = "";
+    if($this->paginationOrder == 'desc') { $this->paginationOpOrder = "asc"; } else { $this->paginationOpOrder = "desc"; }
+    // Search Keywords
+    $this->searchKeywords    = (isset($_REQUEST['keywords']) ? $_REQUEST['keywords'] : "");
+  }
+
+  /**
+   * Pagination Table summary is output as html
+   */
+  public function tableSummary() 
   {
     $content = "Showing <strong>";
-    if($page == 1) {
+    if($this->paginationPage == 1) {
       $startRow = 1;
     } else { 
-      $startRow = ($page-1)*$limit; 
+      $startRow = ($this->paginationPage-1)*$this->paginationLimit; 
     }
     $content .= $startRow;
     $content .= " to ";                             
-    $endRow = $startRow + $limit - 1;
-    if($endRow > $total) { $endRow = $total; }
+    $endRow = $startRow + $this->paginationLimit - 1;
+    if($endRow > $this->paginationTotal) { $endRow = $this->paginationTotal; }
     $content .= $endRow;
     $content .= "</strong> of ";
-    $content .= $total;
+    $content .= $this->paginationTotal;
     $content .= " entries";
     return $content;
   }
 
   /**
-   * Table pagination is output into an html list
+   * pagination is output into an html list
    */
-  public function tablePagination($urlPrefix = "",$page = 1,$total = 0,$limit = 1000,$sort = "",$order="DESC") 
+  public function tablePagination($urlPrefix="") 
   {
     $content = "";
-    $numberOfPages = ceil($total/$limit);
+    $numberOfPages = ceil($this->paginationTotal/$this->paginationLimit);
 
     // If not needed
-    if($numberOfPages == 1) {
-      return $content;
-    }
+    if($numberOfPages == 1) { return $content; }
 
     // Previous
-    if($page > 1) {
-      $content .= '<li class="prev"><a href="'.$urlPrefix.$this->page.'/page/'.($page-1).'/sort/'.$sort.'/order/'.$order.'/limit/'.$limit.'/keywords/'.$this->getVar('keywords').'">Previous</a></li>';
+    if($this->paginationPage > 1) {
+      $content .= '<li class="prev"><a href="'.$urlPrefix.$this->page.'/page/'.($this->paginationPage-1).'/sort/'.$this->paginationSort.'/order/'.$this->paginationOrder.'/limit/'.$this->paginationLimit.'/keywords/'.$this->searchKeywords.'">Previous</a></li>';
     } 
 
-    // previous pages
-    $i = $page - 1;
+    // Previous pages
+    $i = $this->paginationPage - 1;
     $max = 0;
     $contentA = array();
-    while($i >= 1 && $max < 5 && $page > 1) {
-      $contentA[] = '<li><a href="'.$urlPrefix.$this->page.'/page/'.$i.'/sort/'.$sort.'/order/'.$order.'/limit/'.$limit.'/keywords/'.$this->getVar('keywords').'">'.$i.'</a></li>';
+    while($i >= 1 && $max < 5 && $this->paginationPage > 1) {
+      $contentA[] = '<li><a href="'.$urlPrefix.$this->page.'/page/'.$i.'/sort/'.$this->paginationSort.'/order/'.$this->paginationOrder.'/limit/'.$this->paginationLimit.'/keywords/'.$this->searchKeywords.'">'.$i.'</a></li>';
       $i--;
       $max++;
     }
 
     $reversed = array_reverse($contentA);
-    //var_dump($reversed);
     $content .= implode("",$reversed);
 
     // current page
-    $content .= '<li class="active"><input type="hidden" name="current_page" class="" value="'.$page.'"/><input type="text" name="goto_page" class="gotopage" value="'.$page.'"/></li>';
+    $content .= '<li class="active"><input type="hidden" name="current_page" class="" value="'.$this->paginationPage.'"/><input type="text" name="goto_page" class="gotopage" value="'.$this->paginationPage.'"/></li>';
 
 
     // Next pages
-    $i = $page+1;
+    $i = $this->paginationPage+1;
     $max = 0;
     while($i<=$numberOfPages && $max < 5) {
-      $content .= '<li><a href="'.$urlPrefix.$this->page.'/page/'.$i.'/sort/'.$sort.'/order/'.$order.'/limit/'.$limit.'/keywords/'.$this->getVar('keywords').'">'.$i.'</a></li>';
+      $content .= '<li><a href="'.$urlPrefix.$this->page.'/page/'.$i.'/sort/'.$this->paginationSort.'/order/'.$this->paginationOrder.'/limit/'.$this->paginationLimit.'/keywords/'.$this->searchKeywords.'">'.$i.'</a></li>';
       $i++;
       $max++;
     }
 
     // Next
-    if($page < $numberOfPages) {
-      $content .= '<li class="next"><a href="'.$urlPrefix.$this->page.'/page/'.($page+1).'/sort/'.$sort.'/order/'.$order.'/limit/'.$limit.'/keywords/'.$this->getVar('keywords').'">Next</a></li>';
+    if($this->paginationPage < $numberOfPages) {
+      $content .= '<li class="next"><a href="'.$urlPrefix.$this->page.'/page/'.($this->paginationPage+1).'/sort/'.$this->paginationSort.'/order/'.$this->paginationOrder.'/limit/'.$this->paginationLimit.'/keywords/'.$this->searchKeywords.'">Next</a></li>';
     }
 
     return $content;    
@@ -702,108 +710,201 @@ class app {
   }
 
   /**
-   * Process Contact Form
-   * A basic and generic contact form for a website
+   * Get all items from a table, paginated
+   * returns [mysql resource, full count]
    */
-  public function processContactForm($post) 
+  public function getAll($table, $limit=1000, $page=1, $sort='id', $order='desc')
   {
-    // Validation
-    if(!isset($post['name']) || !isset($post['email']) || !isset($post['message'])) {
-      $_SESSION['alertStatus'] = 'error';
-      $_SESSION['alertMsg'] = 'Please enter required fields.';
-      return false;
-    }  
+    $offset = 0;
+    $searchSql = "";
+    if($page > 1) { $offset = ($page - 1) * $limit; }
+    
+    $s = "SELECT * FROM `".$table."` 
+          WHERE `active`='1' 
+          ".$searchSql."
+          ORDER BY `".$sort."` ".$order."  
+          LIMIT ".$offset.",".$limit."";
+    $r = database::dbQuery($s);
+    $object = $r;
 
-    //
-    if($post['name'] == "") {
-      $_SESSION['alertStatus'] = 'error';
-      $_SESSION['alertMsg'] = 'Please enter your name.';
-      return false;
-    }
+    $s = "SELECT count(*) FROM `".$table."` 
+          WHERE `active`='1' 
+          ".$searchSql."";
+    $r = database::dbQuery($s);
+    $a = mysql_fetch_array($r);
+    $count = $a[0];
 
-    //
-    if($post['email'] == "" || !utility::validateEmail($post['email'])) {
-      $_SESSION['alertStatus'] = 'error';
-      $_SESSION['alertMsg'] = 'Please enter a valid email.';
-      return false;
-    }
+    $return = array($object,$count);
 
-    //
-    if($post['message'] == "") {
-      $_SESSION['alertStatus'] = 'error';
-      $_SESSION['alertMsg'] = 'Please enter a message.';
-      return false;
-    }
-
-    // Send Emails
-    // Email contact form to us
-    $to       = $this->contactEmail;
-    $fname    = "GoReturnMe";
-    $from     = $post['email'];
-    $fromName = $post['name'];
-    $subj     = "Contact form submission from ".$this->domain;
-    $message  = $post['message'];
-    utility::mail($to,$fname,$from,$fromName,$subj,$message);
-
-    // Email contact form confirmation to sender
-    $to       = $post['email'];
-    $fname    = $post['name'];
-    $from     = "DoNotReply@".$this->domain;
-    $fromName = $this->companyName;
-    $subj     = $this->domain." Received Your Contact Submission. Thank You.";
-    $message  = $this->contactConfEmail;
-    utility::mail($to,$fname,$from,$fromName,$subj,$message);
-
-    // Redirect to prevent form re-submission
-    $_SESSION['alertStatus'] = 'success';
-    $_SESSION['alertMsg'] = 'We have received your message. Thanks!';
-    header("Location: /contact");
-    die;
+    return array($object,$count);
   }
 
+  /**
+   * get one generic item from a table
+   */
+  public function getOne($table,$id)
+  {
+    $s = "SELECT * FROM `".$table."` WHERE `id`='".$id."' LIMIT 1";
+    if($r = database::dbQuery($s)) {
+      return mysql_fetch_array($r);
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * get many generic items from a table
+   * return mysql resource or false
+   */
+  public function getOneToMany($table,$id,$xid) 
+  {
+    if(!$table){ $table = $this->table; }
+    $s = "SELECT * FROM `".$table."` WHERE `".$xid."`='".$id."' AND active='1'";
+    $r = database::dbQuery($s);
+    return $r;
+  }
+
+  /**
+   * get many from a relational table, many to many
+   */
+  public function getManyToMany($table,$relationalTable,$xid,$yid,$id) {
+    if(!$table) { $table = $this->table; }
+    $s = "SELECT * FROM `".$table."` t1 
+          LEFT JOIN `".$relationalTable."` t2 ON t1.id=t2.`".$yid."` 
+          WHERE t2.`".$xid."`='".$id."'  
+          AND t1.active='1'";
+    $r = database::dbQuery($s);
+    return $r;
+  }
+
+  /**
+   * return true if the relationship exists
+   */
+  public function isManyToMany($relationalTable,$xid,$yid,$idA,$idB) {
+    $s = "SELECT * FROM `".$relationalTable."` WHERE `".$xid."`='".$idA."' AND `".$yid."`='".$idB."' LIMIT 1";
+    $r = database::dbQuery($s);
+    if(mysql_num_rows($r)) {
+      return true;
+    }
+    return false;
+  }
+
+  public function isOneToMany() {
+
+  }
+
+  public function addOne() {
+
+  }
+
+  public function removeOne() {
+
+  }
+
+
+  /**
+   * Create a new generic item by creating the id then calling updateItem to update
+   * the rest of the values into the database
+   */
+  public function newItem($post)
+  {
+    if(!$post) { $post = $_POST; }
+    $s = "INSERT INTO `".$this->table."` SET `id`='', `created`=NOW()";
+    $r = database::dbQuery($s);
+    $lastId = database::lastId();
+    $post['id'] = $lastId;
+    $this->updateItem($post);
+    return $post['id'];
+  }
+
+  /**
+   * Update a new generic item
+   */
+  public function updateItem($post)
+  {
+    if(!$post) { $post = $_POST; }
+    if(!$post['id']) { return false; }
+    foreach($post as $key=>$value) {
+      if($key != 'redirect' && $key != 'image' && $key != 'photo' && $key != 'action' && $key != 'id' && $key != 'created' && $key != 'tabletype' && !array_key_exists($key,$this->oneToManyFields) && !array_key_exists($key, $this->manyToManyFields)) {
+        $s = "UPDATE `".$this->table."` SET `".$key."`='".$value."' WHERE `id`='".$post['id']."' LIMIT 1";
+        database::dbQuery($s);
+      }
+    }  
+
+    // check for a photo or image
+    $imgInputNameArray = array('image','photo');
+    foreach($imgInputNameArray as $postee) {
+      // Upload photo file $inputname, $field
+      if($fileSql = helper::uploadImage($postee,'image')) {
+        $s = "UPDATE `".$this->table."` SET ".rtrim($fileSql,', ')." WHERE `id`='".$post['id']."' LIMIT 1";
+        database::dbQuery($s);
+      }
+    }
+
+    // Update One to many
+    if(count($this->oneToManyFields)) {
+
+    }
+
+    // Update Many to many
+    if(count($this->manyToManyFields)) {
+      foreach($this->manyToManyFields as $field=>$data) {
+        // data will be tableB, tableRel, xid, yid
+        // remove all relationships
+        $s = "DELETE FROM `".$data[1]."` WHERE `".$data[2]."`='".$post['id']."'";        
+        database::dbQuery($s);
+        // handle only one value
+
+        //var_dump($post[$field]);
+        //die;
+
+        if(!is_array($post[$field])) { $post[$field] = array($post[$field]); }
+        // re-add all relationships
+        foreach($post[$field] as $optionValue) { 
+          $s = "INSERT INTO `".$data[1]."` SET `".$data[2]."`='".$post['id']."', `".$data[3]."`='".$optionValue."'";
+          echo $s."<br>";
+          database::dbQuery($s);
+        }
+      }
+    }
+
+    $_SESSION['alertMsg'] = 'success';
+    $_SESSION['alertStatus'] = 'Item saved.';
+    return true;
+  }
+
+  /**
+   * Process table form
+   */
+  public function processTableForm($post)
+  {
+
+    return true;
+  }
+
+  /**
+   * Upload Image
+   * legacy function, this now exists in helper.class.php
+   */
   public function uploadImage($name='photo',$field='image') 
   {
 
-    // Upload the found photo
-    $new_file_name  = '';
-    $fileSql        = ' ';
-    if(isset($_FILES[$name]['name']) && $_FILES[$name]['name'] != '')
-    {
-      //if no errors...
-      if(!$_FILES[$name]['error'])
-      {
-        //now is the time to modify the future file name and validate the file
-        $extension =  pathinfo($_FILES[$name]['name'], PATHINFO_EXTENSION);
-        $new_file_name = md5(strtolower($_FILES[$name]['tmp_name'])).".".strtolower($extension); //rename file
-        $fileSql = "`".$field."`='/uploads/".$new_file_name."', "; 
-        if($_FILES[$name]['size'] > (5120000)) //can't be larger than 5 MB
-        {
-          $_SESSION['alertStatus'] = 'error';
-          $_SESSION['alertMsg'] = 'Oops!  Your file\'s size is to large. Maximum 5MB.';
-          return false;
-        }    
-        //move it to where we want it to be
-        move_uploaded_file($_FILES[$name]['tmp_name'], $_SERVER['DOCUMENT_ROOT'].'/uploads/'.$new_file_name);          
-      }
-      //if there is an error...
-      else
-      {
-        //set that to be the returned message
-        $_SESSION['alertStatus'] = 'error';
-        $_SESSION['alertMsg'] = 'Oops!  File Error.';
-        return false;
-      }
-    }
-
-    return $fileSql;
+    return helper::uploadImage($name,$field);
   }
   
+  /**
+   * We put an empty updateAccount here because it may be called by a module
+   * Now we can override this in our custom child class.
+   */
   function updateAccount() 
   {
 
     return true;
   }
 
+  /**
+   * Check if page is SSL
+   */
   public function isSSL()
   {
       if( !empty( $_SERVER['HTTPS'] ) )
@@ -815,6 +916,10 @@ class app {
       return false;
   }
 
+  /**
+   * Arrow Client function 
+   * Clear the scripts and css cache
+   */
   public static function clearCache()
   {
     $files = glob('cache/*'); // get all file names
@@ -825,6 +930,9 @@ class app {
     return true;
   }
 
+  /**
+   * Combine Scripts
+   */
   public function combineJs()
   {
     $output = '';
@@ -841,6 +949,9 @@ class app {
     return $output;
   }
 
+  /**
+   * Combine CSS
+   */
   public function combineCss()
   {
     $output = '';
@@ -857,6 +968,9 @@ class app {
     return $output;
   }
 
+  /**
+   * Include Normal Scripts
+   */
   public function includeNormalScripts()
   {
     $output = '';
@@ -875,6 +989,9 @@ class app {
     return $output;
   }
 
+  /**
+   * Include Normal Styles
+   */
   public function includeNormalStyles()
   {
     $output = '';
@@ -893,12 +1010,18 @@ class app {
     return $output;
   }
 
+  /**
+   * Minify the Scripts
+   */
   public function minifyJs($output)
   {
     $output = preg_replace('/^\n+|^[\t\s]*\n+/m', '', $output);
     return $output;
   }
 
+  /**
+   * Minify the CSS
+   */
   public function minifyCss($output)
   {
     $output = preg_replace('/^\n+|^[\t\s]*\n+/m', '', $output);
@@ -1001,7 +1124,20 @@ class app {
     return $output;
   }
 
+  /**
+   * PFR
+   * Prevent Form Re-submission
+   */
+  public function pfr()
+  {
+    $this->page = ""; 
+    foreach($this->origUrlArray as $part) {
+      $this->page .= strtolower($part)."/";
+    }
+    $this->page = rtrim($this->page,"/");
+    $this->page = ltrim($this->page,"/");
 
-
+    header("LOCATION: /".$this->page);
+    die;
+  }
 }
-?>

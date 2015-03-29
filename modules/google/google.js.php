@@ -11,7 +11,7 @@
 
 <?
 // Analytics
-if($this->analyticsId) {
+if($this->modules['google']->analyticsId) {
 ?>
 	<!-- Google Analytics -->
 	<script>

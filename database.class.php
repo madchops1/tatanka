@@ -25,7 +25,7 @@ class database
       foreach($envs as $key => $environment) {
         if((strtolower($_SERVER['HTTP_HOST']) == strtolower($environment['host']))) {
           @database::$dbLink = mysql_connect($environment['dbhost'], $environment['dbuser'], $environment['dbpass']);
-          mysql_select_db($environment['dbname']);
+          @mysql_select_db($environment['dbname']);
         }
       }
     }
@@ -36,7 +36,7 @@ class database
       foreach($envs as $key => $environment) {
         if(strtolower($pwd) == strtolower($environment['docroot'])) {
           @database::$dbLink = mysql_connect($environment['dbhost'], $environment['dbuser'], $environment['dbpass']);
-          mysql_select_db($environment['dbname']);
+          @mysql_select_db($environment['dbname']);
         }
       }
     }
@@ -55,10 +55,12 @@ class database
   /**
    * Query
    * Query the database
+   * Upgrade to pdo @todo...
    */
   static public function dbQuery($s=null) 
   {
   	if(isset($s)) {
+      $s = database::injectionProtection($s);
   		@$result = mysql_query($s);
   		if(mysql_error()){
         echo $s."<Br>";
@@ -68,6 +70,17 @@ class database
   		return $result;
   	}
     return true;
+  }
+
+  /**
+   * Insecure but basic injection protection
+   */
+  static public function injectionProtection($s)
+  {
+    // Upgrade to pdo @todo...
+    $s = str_replace("1=1","",$s);
+    $s = str_replace("1 = 1", "", $s);
+    return $s;
   }
 
   /**
