@@ -983,7 +983,7 @@ class app
                     <script type='text/javascript' src='".$script."'></script>";
       } else {
         $output .= "
-                    <script type='text/javascript' src='layouts/".$this->layout."/".$script."'></script>";
+                    <script type='text/javascript' src='/layouts/".$this->layout."/".$script."'></script>";
       }  
     }
     return $output;
@@ -1004,7 +1004,7 @@ class app
                     <link rel='stylesheet' href='".$style."'>";      
       } else {
         $output .= "
-                    <link rel='stylesheet' href='layouts/".$this->layout."/".$style."'>";      
+                    <link rel='stylesheet' href='/layouts/".$this->layout."/".$style."'>";      
       }  
     }
     return $output;
