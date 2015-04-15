@@ -57,6 +57,15 @@ class store {
   {
     switch(strtolower($this->app->page)) {
 
+      // Admin Shipped Satus
+      case "shipped":
+        if(!$this->app->modules['admin']->admin) { break; }
+        $s = "UPDATE orders SET status='Complete' WHERE id='".$_REQUEST['id']."' LIMIT 1";
+        database::dbQuery($s);
+        header("LOCATION: /admin/orders");
+        die;
+        break;
+
       // Admin Orders Route  
       case "orders":
         if(!$this->app->modules['admin']->admin) { break; } // Admin Only
