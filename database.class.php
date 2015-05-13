@@ -23,7 +23,7 @@ class database
     // and setup connection for application
     if(isset($_SERVER['HTTP_HOST'])) {
       foreach($envs as $key => $environment) {
-        if((strtolower($_SERVER['HTTP_HOST']) == strtolower($environment['host']))) {
+        if(strtolower($_SERVER['HTTP_HOST']) == strtolower($environment['host']) && $environment['dbhost']) {
           @database::$dbLink = mysql_connect($environment['dbhost'], $environment['dbuser'], $environment['dbpass']);
           @mysql_select_db($environment['dbname']);
         }
@@ -34,7 +34,7 @@ class database
       // Get the current location
       $pwd = $_SERVER['PWD'];
       foreach($envs as $key => $environment) {
-        if(strtolower($pwd) == strtolower($environment['docroot'])) {
+        if(strtolower($pwd) == strtolower($environment['docroot']) && $environment['dbhost']) {
           @database::$dbLink = mysql_connect($environment['dbhost'], $environment['dbuser'], $environment['dbpass']);
           @mysql_select_db($environment['dbname']);
         }
