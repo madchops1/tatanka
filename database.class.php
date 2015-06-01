@@ -109,7 +109,7 @@ class database
     }
     // Quote if not integer
     if (!is_numeric($var)) {
-      $var = mysql_real_escape_string($var);
+      @$var = mysql_real_escape_string($var);
     }
     return $var;
   }

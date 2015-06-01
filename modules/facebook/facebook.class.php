@@ -18,7 +18,8 @@ class facebook {
     public $app;                // $app container              
     public $appId       = "";   // facebook app id
     public $appSecret   = "";   // facebook app secret
-    public $url         = "";   // main facebook page url
+    public $url         = "";       // main facebook page url
+    public $login       = false;    // True = use facebook login
 
 	function __construct($app) 
     {
@@ -26,6 +27,7 @@ class facebook {
         if(isset($app->faceBookAppId))          $this->appId       = $app->faceBookAppId;       // Configurable $appId
         if(isset($app->faceBookAppSecret))      $this->appSecret   = $app->faceBookAppSecret;   // Configurable $appSecret
         if(isset($app->faceBookUrl))            $this->url         = $app->faceBookUrl;         // Configurable $url
+        if(isset($app->faceBookLogin))          $this->login       = $app->faceBookLogin;       // Facebook login true or false
 	}
 
     public function getRouter()

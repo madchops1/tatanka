@@ -112,8 +112,82 @@ class user {
    */
   public function postRouter()
   {
+
+    
+
     if(!isset($_POST['action'])) { return true; }
     switch(strtolower($_POST['action'])) {
+
+      case "api": 
+
+
+
+        switch(strtolower($_POST['endpoint'])) {
+          
+          case "fbauth":
+
+            // die("POST ROUTER : User");
+            //var_dump($_POST);
+            //die;
+
+            // Check if user exists
+            $s = "SELECT id FROM users WHERE fbid='".$_POST['fbid']."' LIMIT 1";
+            $r = database::dbQuery($s);
+            if(!$user = mysql_fetch_array($r)) {
+           
+              $s = "INSERT INTO users SET 
+                    fbid='".$_POST['fbid']."', 
+                    fname='".$_POST['fname']."', 
+                    lname='".$_POST['lname']."',
+                    email='".$_POST['email']."'";
+              database::dbQuery($s);
+              $user['id'] = database::lastId();
+            //  return json_encode($user);
+            //  die;
+            }
+
+            // Update the user 
+            $s = "UPDATE users SET 
+                  fname='".$_POST['fname']."', 
+                  lname='".$_POST['lname']."',
+                  email='".$_POST['email']."' 
+                  WHERE fbid='".$_POST['fbid']."' LIMIT 1";
+            database::dbQuery($s);
+
+            $s = "SELECT * FROM users WHERE fbid='".$_POST['fbid']."' LIMIT 1";
+            $r = database::dbQuery($s);
+            $user = mysql_fetch_array($r);
+            
+            echo json_encode($user);
+            die;
+
+            //die("Auth Endpoint");
+            break;
+          /*
+          case "updateuser":
+            if(!isset($_POST['email'])) {
+              die('$_POST["email"] is required to update a user via the User Module API.');
+            }
+            if($id = $this->updateAccount($_POST)) {
+              die($id);
+            }
+            die();
+            break;
+          case "login":
+            if(!isset($_POST('fbid'))) {
+              die('$_POST["fbid"] is required to login via the User Module API.');
+            }
+            if($id = $this->fbLogin($_POST)) { 
+              die($id);
+            }
+            break;
+          default:
+            die();
+            break;
+            */
+        }
+        die("You hit the User Api");
+        break;
 
       case "login":
         if($id = $this->login($_POST)) {
@@ -228,6 +302,22 @@ class user {
     }
     $_SESSION['alertStatus'] = 'error';
     $_SESSION['alertMsg'] = 'Login information is incorrect.';
+    return false;
+  }
+
+  /**
+   * FB Login
+   */
+  function fbLogin($post) {
+    if(!$post) $post = $_POST; // post check
+    $s = "SELECT * FROM users WHERE fbid='".$_POST['fbid']."' AND email='".$_POST['email']."' LIMIT 1";
+    $r = database::dbQuery($s);
+    if($user = mysql_fetch_array($r)) {
+      $this->refreshUser($user['id']);
+      $_SESSION['alertStatus'] = 'success';
+      $_SESSION['alertMsg'] = 'Logged in successfully.';
+      return $user['id'];
+    }
     return false;
   }
 

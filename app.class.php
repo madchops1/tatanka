@@ -80,7 +80,7 @@ class app
   public $searchKeywords            = false;                            // search 
   public $table                     = '';                               // generic new and update
   public $oneToManyFields           = array();                          //
-  public $manyToManyFields          = array();                          //
+  public $manyToManyFields          = array();                          // connect 
 
   // Modules  
   protected $moduleDirectory        = MOD_DIR;                          // DO NOT CHANGE
@@ -342,6 +342,8 @@ class app
    */
   private function postRouter()
   {
+
+    //var_dump($_POST);
 
     // Sanitize post, keep unsanitized post around...
     $_UNSANITIZED_POST = $_POST;
